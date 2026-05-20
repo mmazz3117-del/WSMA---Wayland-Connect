@@ -582,7 +582,7 @@ Option 3"></textarea></div>
   </div>
 
   <script>
-    const STORAGE_KEY = "wayland-square-connect-v3-clean";
+    const STORAGE_KEY = "wayland-square-connect-v4-functional";
 
     const blankState = {
       events: [],
@@ -714,8 +714,7 @@ Option 3"></textarea></div>
 
     document.getElementById("voteForm").addEventListener("submit", event => {
       event.preventDefault();
-      const options = document.getElementById("voteOptions").value.split("
-").map(item => item.trim()).filter(Boolean);
+      const options = document.getElementById("voteOptions").value.split("\n").map(item => item.trim()).filter(Boolean);
       if (options.length < 2) {
         alert("Please add at least two options.");
         return;
