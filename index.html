@@ -1,397 +1,551 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Wayland Square Connect</title>
+  <meta name="description" content="Wayland Square Connect is a simple shared app for the Wayland Square Merchants Association." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230b376d'/%3E%3Ctext x='50' y='58' font-size='28' text-anchor='middle' fill='white' font-family='Arial,sans-serif' font-weight='700'%3EWS%3C/text%3E%3C/svg%3E" />
   <style>
     :root {
-      --bg: #eef5ff;
-      --bg2: #f8fbff;
-      --card: #ffffff;
-      --ink: #14304a;
-      --muted: #6f7f8f;
-      --blue: #1976d2;
-      --blue2: #0d47a1;
-      --sky: #d9ecff;
-      --line: #d9e7f5;
-      --green: #2e7d32;
-      --gold: #f5b942;
-      --shadow: 0 14px 34px rgba(20, 48, 74, 0.13);
-      --radius: 22px;
+      --blue-950:#072846;
+      --blue-900:#0b376d;
+      --blue-800:#124b86;
+      --blue-700:#1768b8;
+      --blue-100:#e9f4ff;
+      --blue-050:#f5fbff;
+      --green-700:#2d7d46;
+      --gold-700:#b87012;
+      --purple-700:#6f42c1;
+      --ink:#14213d;
+      --muted:#667085;
+      --line:#d9e3ee;
+      --paper:#ffffff;
+      --bg:#f4f8fc;
+      --shadow:0 14px 35px rgba(8, 47, 73, .08);
+      --radius:20px;
     }
-
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
-
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
-      margin: 0;
-      min-height: 100vh;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-      color: var(--ink);
-      background:
-        radial-gradient(circle at top left, rgba(25, 118, 210, 0.16), transparent 34rem),
-        linear-gradient(180deg, var(--bg2), var(--bg));
+      margin:0;
+      min-height:100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top right, #eaf7ff 0, var(--bg) 38%, #eef5fb 100%);
+      color:var(--ink);
+      overflow-x:hidden;
     }
+    button, input, textarea, select { font: inherit; }
+    button { cursor:pointer; }
 
-    .app {
-      width: min(100%, 520px);
-      margin: 0 auto;
-      min-height: 100vh;
-      padding: 18px 14px 92px;
+    .app-shell { min-height:100vh; }
+    .sidebar-overlay {
+      position:fixed; inset:0; background:rgba(7,40,70,.42); opacity:0; visibility:hidden;
+      transition:.2s ease; z-index:19;
     }
-
-    .hero {
-      position: relative;
-      overflow: hidden;
-      border-radius: 28px;
-      padding: 22px 18px;
-      background:
-        linear-gradient(135deg, rgba(13, 71, 161, 0.95), rgba(25, 118, 210, 0.9)),
-        url("wayland-square-sign.jpg");
-      background-size: cover;
-      background-position: center;
-      box-shadow: var(--shadow);
-      color: white;
+    .sidebar {
+      position:fixed; top:0; left:0; bottom:0; width:min(82vw, 300px);
+      display:flex; flex-direction:column; gap:14px;
+      padding:18px 14px 16px;
+      border-right:1px solid var(--line);
+      background:linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+      box-shadow: 8px 0 26px rgba(12, 56, 92, .10);
+      z-index:20;
+      transform:translateX(-102%);
+      transition:.22s ease;
+      overflow-y:auto;
     }
-
-    .hero::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(9, 38, 76, 0.86), rgba(25, 118, 210, 0.52));
+    body.menu-open .sidebar { transform:translateX(0); }
+    body.menu-open .sidebar-overlay { opacity:1; visibility:visible; }
+    .sidebar-head {
+      display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
+      padding:6px 4px 10px; border-bottom:1px solid var(--line);
     }
-
-    .hero-content {
-      position: relative;
-      z-index: 1;
+    .sidebar-title { font-size:20px; font-weight:950; line-height:1.1; color:var(--blue-900); }
+    .sidebar-sub { margin-top:5px; color:var(--muted); font-size:13px; line-height:1.35; }
+    .close-menu, .menu-toggle {
+      border:1px solid var(--line); background:#fff; color:var(--blue-900);
+      border-radius:12px; width:42px; height:42px; display:grid; place-items:center;
+      font-size:20px; font-weight:900; flex:0 0 auto;
+      box-shadow:0 8px 18px rgba(8, 47, 73, .05);
     }
-
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.17);
-      border: 1px solid rgba(255, 255, 255, 0.26);
-      font-size: 0.84rem;
-      font-weight: 700;
-      letter-spacing: 0.01em;
-      backdrop-filter: blur(8px);
+    .nav { display:grid; gap:8px; }
+    .nav-button {
+      display:flex; align-items:center; gap:12px; width:100%; border:0; border-radius:16px;
+      padding:13px 14px; background:transparent; color:#19324d; font-weight:800;
+      text-align:left; transition:.18s ease;
     }
-
-    h1 {
-      margin: 18px 0 8px;
-      font-size: clamp(2.1rem, 11vw, 3.3rem);
-      line-height: 0.95;
-      letter-spacing: -0.06em;
+    .nav-button:hover { background:#eef7ff; transform:translateX(1px); }
+    .nav-button.active { background:linear-gradient(135deg,#dcefff,#cbe6ff); color:#0b4b86; box-shadow: inset 3px 0 0 var(--blue-700); }
+    .nav-icon { width:24px; text-align:center; font-size:18px; }
+    .sidebar-card {
+      margin-top:auto; border:1px solid var(--line); background:rgba(255,255,255,.9);
+      border-radius:18px; padding:16px; text-align:center; box-shadow:0 8px 24px rgba(9, 40, 68, .05);
     }
+    .sidebar-card strong { display:block; font-size:15px; }
+    .sidebar-card p { margin:8px 0 0; color:var(--muted); font-size:13px; line-height:1.35; }
 
-    .hero p {
-      margin: 0;
-      max-width: 28rem;
-      font-size: 1rem;
-      line-height: 1.45;
-      color: rgba(255, 255, 255, 0.9);
+    .main { min-width:0; padding:12px 12px 26px; }
+    .topbar {
+      position:sticky; top:0; z-index:9; display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:10px;
+      margin-bottom:12px; padding:10px 12px; border:1px solid var(--line); border-radius:18px;
+      background:rgba(255,255,255,.92); backdrop-filter: blur(8px); box-shadow:var(--shadow);
     }
-
-    .status-row {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 10px;
-      margin: 14px 0 6px;
-    }
-
-    .status-card {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 14px 15px;
-      border-radius: 20px;
-      background: var(--card);
-      border: 1px solid var(--line);
-      box-shadow: 0 8px 20px rgba(20, 48, 74, 0.07);
-    }
-
-    .status-card strong {
-      display: block;
-      font-size: 1rem;
-    }
-
-    .status-card span {
-      display: block;
-      margin-top: 3px;
-      font-size: 0.86rem;
-      color: var(--muted);
-    }
-
+    .topbar-left { display:flex; align-items:center; gap:12px; min-width:0; flex:1 1 100%; }
+    .page-title { margin:0; font-size:22px; line-height:1.1; letter-spacing:-.035em; }
+    .page-subtitle { display:none; margin-top:4px; color:var(--muted); font-size:12px; }
+    .topbar-actions { display:grid; grid-template-columns:1fr 1fr; gap:8px; flex:1 1 100%; }
     .pill {
-      white-space: nowrap;
-      padding: 8px 11px;
-      border-radius: 999px;
-      background: var(--sky);
-      color: var(--blue2);
-      font-weight: 800;
-      font-size: 0.8rem;
+      display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line); background:#fff;
+      border-radius:999px; padding:10px 14px; box-shadow:0 8px 18px rgba(8, 47, 73, .05);
+      color:#1f344a; font-weight:750; font-size:14px; white-space:nowrap;
     }
-
-    .section-title {
-      margin: 24px 4px 12px;
-      display: flex;
-      align-items: end;
-      justify-content: space-between;
-      gap: 14px;
+    .hero {
+      overflow:hidden; border-radius:22px; background:#fff; border:1px solid var(--line);
+      box-shadow:var(--shadow); margin-bottom:16px;
     }
-
-    .section-title h2 {
-      margin: 0;
-      font-size: 1.25rem;
-      letter-spacing: -0.03em;
+    .hero img { display:block; width:100%; height:clamp(190px, 54vw, 275px); object-fit:cover; object-position:center; }
+    .hero-caption {
+      display:flex; flex-direction:column; align-items:flex-start; gap:12px; padding:14px 16px;
+      border-top:1px solid var(--line); background:linear-gradient(90deg,#fff,#f5fbff);
     }
+    .hero-caption h2 { margin:0; font-size:18px; }
+    .hero-caption p { margin:4px 0 0; color:var(--muted); font-size:14px; }
 
-    .section-title small {
-      color: var(--muted);
-      font-weight: 700;
+    .quick-actions { display:grid; grid-auto-flow:column; grid-auto-columns:minmax(92px, 1fr); gap:10px; overflow-x:auto; padding:2px 2px 10px; margin:0 0 12px; scrollbar-width:none; }
+    .quick-actions::-webkit-scrollbar { display:none; }
+    .quick-tile { border:1px solid var(--line); background:#fff; border-radius:18px; min-height:92px; padding:12px 10px; display:grid; gap:8px; place-items:center; color:#102844; font-weight:900; box-shadow:0 10px 24px rgba(8, 47, 73, .06); }
+    .quick-tile .quick-icon { font-size:28px; line-height:1; }
+    .quick-tile span:last-child { font-size:13px; }
+    .cards-grid { display:grid; grid-template-columns:1fr; gap:12px; margin-bottom:16px; }
+    .stat-card, .panel {
+      background:rgba(255,255,255,.92); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow);
     }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
+    .stat-card { padding:16px; display:flex; align-items:center; gap:14px; }
+    .stat-icon {
+      width:52px; height:52px; flex:0 0 auto; display:grid; place-items:center; border-radius:18px;
+      background:var(--blue-100); color:var(--blue-800); font-size:24px;
     }
+    .stat-card:nth-child(2) .stat-icon { background:#edf9ef; color:var(--green-700); }
+    .stat-card:nth-child(3) .stat-icon { background:#fff5e5; color:var(--gold-700); }
+    .stat-card:nth-child(4) .stat-icon { background:#f3eaff; color:var(--purple-700); }
+    .stat-label { color:var(--muted); font-weight:800; font-size:13px; }
+    .stat-value { font-size:28px; font-weight:950; line-height:1; margin-top:3px; }
 
-    .tile {
-      border: 0;
-      text-align: left;
-      min-height: 138px;
-      padding: 16px;
-      border-radius: var(--radius);
-      background: var(--card);
-      color: var(--ink);
-      box-shadow: 0 10px 24px rgba(20, 48, 74, 0.08);
-      border: 1px solid var(--line);
-      cursor: pointer;
+    .dashboard-grid, .two-column { display:grid; grid-template-columns:1fr; gap:14px; align-items:start; }
+    .panel { padding:16px; }
+    .panel.wide { grid-column:1 / -1; }
+    .panel-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:14px; }
+    .panel-title { margin:0; font-size:18px; letter-spacing:-.01em; }
+    .link-button { border:0; background:transparent; color:var(--blue-700); font-weight:900; padding:0; }
+    .list { display:grid; gap:10px; }
+    .event-row, .note-row, .chat-row, .member-row, .poll-option {
+      border:1px solid #e5edf5; background:#fff; border-radius:16px; padding:13px;
     }
-
-    .tile:active {
-      transform: scale(0.985);
+    .event-row { display:grid; grid-template-columns:54px 1fr; gap:12px; align-items:start; }
+    .date-badge { background:linear-gradient(180deg,#edf7ff,#dcefff); border-radius:14px; text-align:center; padding:8px 4px; color:var(--blue-800); font-weight:950; }
+    .date-badge span { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.06em; }
+    .event-title, .note-title, .poll-title { font-weight:900; }
+    .event-meta, .note-meta, .chat-meta, .small-muted { color:var(--muted); font-size:13px; margin-top:4px; }
+    .event-time { grid-column:2; color:#2a3b51; font-size:13px; text-align:left; font-weight:800; }
+    .bar { height:8px; border-radius:999px; background:#e8eef5; overflow:hidden; margin-top:7px; }
+    .bar > span { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,var(--blue-700),#72b7f8); }
+    .chat-row { display:grid; grid-template-columns:42px 1fr auto; gap:12px; align-items:center; }
+    .avatar { width:38px; height:38px; border-radius:50%; display:grid; place-items:center; color:white; font-weight:950; background:var(--blue-700); }
+    .avatar.green { background:#36a05b; }
+    .avatar.orange { background:#f28c28; }
+    .avatar.purple { background:#7a55d6; }
+    .view { display:none; animation:fadeIn .18s ease; }
+    .view.active { display:block; }
+    @keyframes fadeIn { from{opacity:0; transform:translateY(4px)} to{opacity:1; transform:none} }
+    form { display:grid; gap:11px; }
+    label { display:grid; gap:6px; color:#264057; font-weight:850; font-size:13px; }
+    input, textarea, select {
+      width:100%; border:1px solid #cfdbe8; border-radius:14px; background:#fff; padding:12px 13px; color:#13283f; outline:none;
     }
-
-    .icon {
-      width: 42px;
-      height: 42px;
-      display: grid;
-      place-items: center;
-      border-radius: 15px;
-      background: var(--sky);
-      font-size: 1.3rem;
-      margin-bottom: 14px;
+    textarea { min-height:110px; resize:vertical; }
+    input:focus, textarea:focus, select:focus { border-color:#74b7ee; box-shadow:0 0 0 4px rgba(23,104,184,.12); }
+    .button-row { display:flex; flex-wrap:wrap; gap:8px; }
+    .primary, .secondary, .danger { border:0; border-radius:14px; padding:11px 14px; font-weight:950; }
+    .primary { background:linear-gradient(135deg,var(--blue-800),var(--blue-700)); color:#fff; }
+    .secondary { background:#eef7ff; color:var(--blue-800); border:1px solid #d1e8ff; }
+    .danger { background:#fff1f1; color:#b42318; border:1px solid #ffd0d0; }
+    .empty { color:var(--muted); background:#f7fbff; border:1px dashed #c7d8e8; border-radius:16px; padding:18px; text-align:center; }
+    .item-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:10px; }
+    .tabs-note {
+      margin:0 0 14px; padding:12px 14px; border-radius:16px; background:#eef7ff; border:1px solid #d1e8ff; color:#244b70;
     }
+    .poll-option { display:grid; gap:6px; }
+    .poll-line { display:flex; justify-content:space-between; gap:12px; font-size:14px; font-weight:850; }
+    .member-row { display:flex; justify-content:space-between; gap:12px; align-items:center; }
+    .status-pill { border-radius:999px; padding:6px 9px; font-size:12px; font-weight:950; background:#eef7ff; color:var(--blue-800); white-space:nowrap; }
+    .status-pill.open { background:#edf9ef; color:var(--green-700); }
+    .status-pill.invited { background:#fff5e5; color:var(--gold-700); }
+    .footer-note { color:var(--muted); font-size:13px; line-height:1.5; margin-top:18px; }
 
-    .tile h3 {
-      margin: 0 0 6px;
-      font-size: 1.05rem;
-      letter-spacing: -0.02em;
+    @media (min-width: 700px) {
+      .main { padding:18px 18px 34px; }
+      .topbar-left { flex:1 1 auto; }
+      .page-subtitle { display:block; }
+      .topbar-actions { display:flex; flex:0 0 auto; width:auto; }
+      .cards-grid { grid-template-columns:repeat(2, minmax(0,1fr)); }
+      .quick-actions { grid-auto-columns:minmax(115px, 1fr); }
+      .hero img { height:260px; }
+      .hero-caption { flex-direction:row; justify-content:space-between; align-items:center; }
+      .event-row { grid-template-columns:58px 1fr auto; align-items:center; }
+      .event-time { grid-column:auto; text-align:right; }
     }
-
-    .tile p {
-      margin: 0;
-      color: var(--muted);
-      font-size: 0.88rem;
-      line-height: 1.32;
-    }
-
-    .full {
-      grid-column: 1 / -1;
-      min-height: auto;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-
-    .full .icon {
-      margin-bottom: 0;
-      flex: 0 0 auto;
-    }
-
-    .panel {
-      margin-top: 12px;
-      padding: 16px;
-      border-radius: var(--radius);
-      background: var(--card);
-      border: 1px solid var(--line);
-      box-shadow: 0 10px 24px rgba(20, 48, 74, 0.08);
-    }
-
-    .empty-state {
-      display: grid;
-      gap: 8px;
-      padding: 10px 2px;
-    }
-
-    .empty-state strong {
-      font-size: 1rem;
-    }
-
-    .empty-state p {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.42;
-      font-size: 0.92rem;
-    }
-
-    .bottom-nav {
-      position: fixed;
-      left: 50%;
-      bottom: 14px;
-      transform: translateX(-50%);
-      width: min(calc(100% - 24px), 500px);
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 7px;
-      padding: 9px;
-      border-radius: 24px;
-      background: rgba(255, 255, 255, 0.9);
-      border: 1px solid var(--line);
-      box-shadow: 0 18px 40px rgba(20, 48, 74, 0.2);
-      backdrop-filter: blur(14px);
-    }
-
-    .nav-btn {
-      border: 0;
-      background: transparent;
-      border-radius: 16px;
-      color: var(--muted);
-      padding: 8px 4px;
-      font-weight: 800;
-      font-size: 0.74rem;
-      cursor: pointer;
-    }
-
-    .nav-btn.active {
-      background: var(--blue);
-      color: white;
-    }
-
-    @media (min-width: 480px) {
-      .app {
-        padding-top: 24px;
+    @media (min-width: 1000px) {
+      .app-shell { display:grid; grid-template-columns:250px minmax(0, 1fr); }
+      .sidebar-overlay, .menu-toggle, .close-menu { display:none; }
+      .sidebar {
+        position:sticky; transform:none; top:0; width:auto; height:100vh; box-shadow:8px 0 26px rgba(12, 56, 92, .05);
       }
-
-      .status-row {
-        grid-template-columns: 1fr 1fr;
-      }
+      .main { padding:24px clamp(18px, 3vw, 40px) 40px; }
+      .page-title { font-size:30px; }
+      .page-subtitle { font-size:13px; }
+      .hero img { height:280px; }
+      .cards-grid { grid-template-columns:repeat(4, minmax(0,1fr)); gap:16px; }
+      .dashboard-grid { grid-template-columns: 1.05fr .95fr 1.05fr; gap:16px; }
+      .two-column { grid-template-columns: 360px minmax(0, 1fr); gap:18px; }
+    }
+    @media (min-width: 1240px) {
+      .hero img { height:300px; }
     }
   </style>
 </head>
-
 <body>
-  <main class="app">
-    <section class="hero">
-      <div class="hero-content">
-        <div class="badge">🌿 Wayland Square Merchants</div>
-        <h1>Wayland<br />Square<br />Connect</h1>
-        <p>
-          A simple hub for events, RSVPs, meeting notes, votes, and updates for the Wayland Square business community.
-        </p>
-      </div>
-    </section>
-
-    <section class="status-row" aria-label="Current status">
-      <div class="status-card">
+  <div class="app-shell">
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <aside class="sidebar" id="sidebar" aria-label="App navigation">
+      <div class="sidebar-head">
         <div>
-          <strong id="greeting">Welcome</strong>
-          <span>Today’s merchant hub</span>
+          <div class="sidebar-title">Wayland Square Connect</div>
+          <div class="sidebar-sub">Wayland Square Merchants Association</div>
         </div>
-        <div class="pill">Live soon</div>
+        <button class="close-menu" id="closeMenu" aria-label="Close menu">✕</button>
+      </div>
+      <nav class="nav" id="nav"></nav>
+      <div class="sidebar-card">
+        <strong>Wayland Square<br>Merchants Association</strong>
+        <p>Strengthening our businesses. Building our community.</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <div class="topbar-left">
+          <button class="menu-toggle" id="menuToggle" aria-label="Open menu">☰</button>
+          <div>
+            <h1 class="page-title">Wayland Square Connect</h1>
+            <div class="page-subtitle">Wayland Square Merchants Association</div>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <span class="pill">🔔 <span id="openBadge">0 open items</span></span>
+          <span class="pill">☀️ Good morning</span>
+        </div>
       </div>
 
-      <div class="status-card">
+      <section id="dashboard" class="view active"></section>
+      <section id="events" class="view"></section>
+      <section id="notes" class="view"></section>
+      <section id="votes" class="view"></section>
+      <section id="chat" class="view"></section>
+      <section id="members" class="view"></section>
+    </main>
+  </div>
+
+  <template id="hero-template">
+    <div class="hero">
+      <img src="assets/wayland-square-connect-banner.png" alt="Stylized Wayland Square sign for Wayland Square Connect" />
+      <div class="hero-caption">
         <div>
-          <strong>🔔 No open items</strong>
-          <span>Nothing needs attention yet</span>
+          <h2>One simple place to coordinate the square.</h2>
+          <p>Events, RSVPs, meeting notes, votes, chat, and member invites for the Wayland Square Merchants Association.</p>
         </div>
+        <button class="primary" data-go="events">Add an Event</button>
       </div>
-    </section>
-
-    <div class="section-title">
-      <h2>Dashboard</h2>
-      <small>Firebase-ready</small>
     </div>
-
-    <section class="grid" aria-label="Dashboard cards">
-      <button class="tile" type="button">
-        <div class="icon">📅</div>
-        <h3>Events</h3>
-        <p>None scheduled yet. Future events will appear here.</p>
-      </button>
-
-      <button class="tile" type="button">
-        <div class="icon">✅</div>
-        <h3>Votes</h3>
-        <p>None active. Merchant decisions can be posted here.</p>
-      </button>
-
-      <button class="tile" type="button">
-        <div class="icon">📝</div>
-        <h3>Notes</h3>
-        <p>No notes yet. Meeting summaries can be saved here.</p>
-      </button>
-
-      <button class="tile" type="button">
-        <div class="icon">💬</div>
-        <h3>Messages</h3>
-        <p>Chat coming soon once member login is connected.</p>
-      </button>
-
-      <button class="tile full" type="button">
-        <div class="icon">👥</div>
-        <div>
-          <h3>Members</h3>
-          <p>Member directory and invites will be connected in the next phase.</p>
-        </div>
-      </button>
-    </section>
-
-    <div class="section-title">
-      <h2>Next Up</h2>
-      <small>No sample data</small>
-    </div>
-
-    <section class="panel">
-      <div class="empty-state">
-        <strong>Nothing scheduled yet</strong>
-        <p>
-          Once Firebase is connected, real events, RSVPs, notes, votes, and member updates will populate this area.
-        </p>
-      </div>
-    </section>
-  </main>
-
-  <nav class="bottom-nav" aria-label="Main navigation">
-    <button class="nav-btn active" type="button">Home</button>
-    <button class="nav-btn" type="button">Events</button>
-    <button class="nav-btn" type="button">Votes</button>
-    <button class="nav-btn" type="button">Chat</button>
-  </nav>
+  </template>
 
   <script>
-    function setGreeting() {
-      const hour = new Date().getHours();
-      let greeting = "Welcome";
+    const STORAGE_KEY = 'wsma-wayland-square-connect-v1';
+    const tabs = [
+      ['dashboard', '🏠', 'Dashboard'],
+      ['events', '📅', 'Events'],
+      ['notes', '📄', 'Notes'],
+      ['votes', '✅', 'Votes'],
+      ['chat', '💬', 'Chat'],
+      ['members', '👥', 'Members']
+    ];
 
-      if (hour < 12) greeting = "Good morning";
-      else if (hour < 17) greeting = "Good afternoon";
-      else greeting = "Good evening";
+    const seedData = {
+      events: [
+        { id: uid(), title:'WSMA Monthly Meeting', date:'2026-06-03', time:'09:00', location:'Wayland Square', description:'Planning meeting for upcoming neighborhood events and merchant updates.', rsvps:{attending:6, maybe:2, notAttending:1}, myRsvp:'' },
+        { id: uid(), title:'Second Saturday in the Square', date:'2026-06-13', time:'11:00', location:'Participating Shops', description:'A simple store-by-store activation with tastings, specials, and local promotion.', rsvps:{attending:9, maybe:3, notAttending:0}, myRsvp:'' },
+        { id: uid(), title:'Summer Sidewalk Stroll Planning', date:'2026-06-26', time:'08:30', location:'TBD', description:'Finalize participating shops, promotional graphics, and event-day responsibilities.', rsvps:{attending:4, maybe:4, notAttending:0}, myRsvp:'' }
+      ],
+      notes: [
+        { id: uid(), title:'Event Planning Notes', date:'2026-05-20', author:'Matt', body:'Start with one simple, repeatable event to build momentum. Keep setup light and make participation easy for merchants.', actionItems:'Confirm participating shops\nChoose a date\nCreate shared promo copy' },
+        { id: uid(), title:'Marketing Committee Update', date:'2026-05-12', author:'Sarah J.', body:'Discussed shared social media content and a simple calendar for participating businesses.', actionItems:'Collect event photos\nDraft Instagram caption\nConfirm poster size' }
+      ],
+      polls: [
+        { id: uid(), question:'Which event should we prioritize first?', status:'Open', options:[ {id:uid(), label:'Second Saturday', votes:7}, {id:uid(), label:'Family Field Day', votes:3}, {id:uid(), label:'Holiday Preview Night', votes:2} ], myVote:'' },
+        { id: uid(), question:'Best time for monthly meetings?', status:'Open', options:[ {id:uid(), label:'Weekday morning', votes:5}, {id:uid(), label:'Weekday evening', votes:4}, {id:uid(), label:'Sunday evening', votes:1} ], myVote:'' }
+      ],
+      messages: [
+        { id: uid(), channel:'General Announcements', author:'Matt', message:'Welcome! This can be the central place for events, notes, votes, and updates.', time:'Today' },
+        { id: uid(), channel:'Events Team', author:'Jamie F.', message:'I can help with the first event flyer and shared social caption.', time:'Yesterday' }
+      ],
+      members: [
+        { id: uid(), name:'Matt', business:'Ocean State Spice & Tea', email:'oceanstatespiceandtea@gmail.com', role:'Admin', status:'Active' },
+        { id: uid(), name:'Jessica', business:'Ocean State Spice & Tea', email:'', role:'Member', status:'Active' },
+        { id: uid(), name:'New Merchant', business:'', email:'merchant@example.com', role:'Member', status:'Invited' }
+      ]
+    };
 
-      document.getElementById("greeting").textContent = greeting;
+    let state = load();
+    let activeTab = 'dashboard';
+
+    function openMenu(){ document.body.classList.add('menu-open'); }
+    function closeMenu(){ document.body.classList.remove('menu-open'); }
+
+    function uid(){ return 'id-' + Math.random().toString(36).slice(2) + Date.now().toString(36); }
+    function load(){
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || seedData; }
+      catch(e) { return seedData; }
+    }
+    function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); render(); }
+    function escapeHTML(value=''){
+      return String(value).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+    }
+    function formatDate(value){
+      if(!value) return 'No date';
+      const [y,m,d] = value.split('-').map(Number);
+      const date = new Date(y, m-1, d);
+      return date.toLocaleDateString([], { month:'short', day:'numeric', year:'numeric' });
+    }
+    function monthDay(value){
+      if(!value) return ['TBD',''];
+      const [y,m,d] = value.split('-').map(Number);
+      const date = new Date(y, m-1, d);
+      return [date.toLocaleDateString([], { month:'short' }), String(d).padStart(2,'0')];
+    }
+    function heroHTML(){ return document.getElementById('hero-template').innerHTML; }
+    function upcomingEvents(){ return [...state.events].sort((a,b) => (`${a.date} ${a.time || ''}`).localeCompare(`${b.date} ${b.time || ''}`)); }
+    function openPolls(){ return state.polls.filter(p => p.status === 'Open'); }
+    function totalChat(){ return state.messages.length; }
+    function statCard(label, value, icon){ return `<article class="stat-card"><div class="stat-icon">${icon}</div><div><div class="stat-label">${label}</div><div class="stat-value">${value}</div></div></article>`; }
+
+    function eventRow(e, includeActions=false){
+      const [mo, day] = monthDay(e.date);
+      return `<div class="event-row">
+        <div class="date-badge"><span>${escapeHTML(mo)}</span>${escapeHTML(day)}</div>
+        <div>
+          <div class="event-title">${escapeHTML(e.title)}</div>
+          <div class="event-meta">📍 ${escapeHTML(e.location || 'Location TBD')}</div>
+          ${includeActions ? `<div class="small-muted">${escapeHTML(e.description || '')}</div><div class="button-row" style="margin-top:10px">
+            <button class="secondary" onclick="rsvp('${e.id}','attending')">Attending: ${e.rsvps.attending}</button>
+            <button class="secondary" onclick="rsvp('${e.id}','maybe')">Maybe: ${e.rsvps.maybe}</button>
+            <button class="secondary" onclick="rsvp('${e.id}','notAttending')">Can’t Attend: ${e.rsvps.notAttending}</button>
+            <button class="danger" onclick="deleteEvent('${e.id}')">Delete</button>
+          </div>${e.myRsvp ? `<div class="small-muted">Your RSVP: ${escapeHTML(e.myRsvp)}</div>` : ''}` : ''}
+        </div>
+        <div class="event-time">${formatDate(e.date)}<br>${escapeHTML(e.time || '')}</div>
+      </div>`;
     }
 
-    setGreeting();
+    function noteRow(n, includeFull=false){
+      return `<div class="note-row">
+        <div class="note-title">${escapeHTML(n.title)}</div>
+        <div class="note-meta">By ${escapeHTML(n.author || 'WSMA')} · ${formatDate(n.date)}</div>
+        <p class="small-muted">${escapeHTML(n.body || '')}</p>
+        ${includeFull && n.actionItems ? `<div class="small-muted"><strong>Action items:</strong><br>${escapeHTML(n.actionItems).replace(/\n/g,'<br>')}</div>` : ''}
+        ${includeFull ? `<div class="item-actions"><button class="danger" onclick="deleteNote('${n.id}')">Delete</button></div>` : ''}
+      </div>`;
+    }
+
+    function pollHTML(p, includeActions=false){
+      const total = p.options.reduce((sum,o) => sum + Number(o.votes || 0), 0);
+      return `<div class="note-row">
+        <div class="panel-header" style="margin-bottom:8px">
+          <div>
+            <div class="poll-title">${escapeHTML(p.question)}</div>
+            <div class="note-meta">${escapeHTML(p.status)} · ${total} total votes ${p.myVote ? '· You voted' : ''}</div>
+          </div>
+          ${includeActions ? `<button class="secondary" onclick="togglePoll('${p.id}')">${p.status === 'Open' ? 'Close' : 'Reopen'}</button>` : ''}
+        </div>
+        <div class="list">
+          ${p.options.map(o => {
+            const pct = total ? Math.round((o.votes / total) * 100) : 0;
+            const disabled = p.status !== 'Open' || p.myVote;
+            return `<div class="poll-option">
+              <div class="poll-line"><span>${escapeHTML(o.label)}</span><span>${o.votes} · ${pct}%</span></div>
+              <div class="bar"><span style="width:${Math.max(pct, 4)}%"></span></div>
+              ${includeActions ? `<button class="secondary" ${disabled ? 'disabled' : ''} onclick="vote('${p.id}','${o.id}')">${disabled ? 'Vote recorded' : 'Vote for this'}</button>` : ''}
+            </div>`
+          }).join('')}
+        </div>
+        ${includeActions ? `<div class="item-actions"><button class="danger" onclick="deletePoll('${p.id}')">Delete</button></div>` : ''}
+      </div>`;
+    }
+
+    function chatRow(m){
+      const initials = (m.channel || m.author || 'WSMA').split(/\s+/).map(x => x[0]).slice(0,2).join('').toUpperCase();
+      return `<div class="chat-row"><div class="avatar">${escapeHTML(initials)}</div><div><div class="event-title">${escapeHTML(m.channel || 'General')}</div><div class="chat-meta">${escapeHTML(m.author)} · ${escapeHTML(m.time)}</div><div class="small-muted">${escapeHTML(m.message)}</div></div><div>›</div></div>`;
+    }
+
+    function memberRow(m){
+      return `<div class="member-row"><div><div class="event-title">${escapeHTML(m.name || 'Unnamed')}</div><div class="small-muted">${escapeHTML(m.business || 'Business TBD')} ${m.email ? '· ' + escapeHTML(m.email) : ''}</div></div><div style="text-align:right"><span class="status-pill ${m.status === 'Active' ? 'open' : 'invited'}">${escapeHTML(m.status)}</span><div class="small-muted">${escapeHTML(m.role || 'Member')}</div></div></div>`;
+    }
+
+    function renderNav(){
+      document.getElementById('nav').innerHTML = tabs.map(([id, icon, label]) => `<button class="nav-button ${activeTab===id?'active':''}" data-tab="${id}"><span class="nav-icon">${icon}</span>${label}</button>`).join('');
+      document.querySelectorAll('[data-tab]').forEach(btn => btn.addEventListener('click', () => { activeTab = btn.dataset.tab; closeMenu(); render(); }));
+    }
+
+    function renderDashboard(){
+      const events = upcomingEvents();
+      const polls = openPolls();
+      document.getElementById('dashboard').innerHTML = `
+        ${heroHTML()}
+        <div class="quick-actions" aria-label="Quick actions">
+          <button class="quick-tile" data-go="members"><span class="quick-icon">🏪</span><span>Directory</span></button>
+          <button class="quick-tile" data-go="events"><span class="quick-icon">📅</span><span>Events</span></button>
+          <button class="quick-tile" data-go="notes"><span class="quick-icon">📄</span><span>Notes</span></button>
+          <button class="quick-tile" data-go="votes"><span class="quick-icon">✅</span><span>Votes</span></button>
+          <button class="quick-tile" data-go="chat"><span class="quick-icon">💬</span><span>Chat</span></button>
+        </div>
+        <div class="cards-grid">
+          ${statCard('Upcoming Events', state.events.length, '📅')}
+          ${statCard('Open Votes', polls.length, '✅')}
+          ${statCard('Meeting Notes', state.notes.length, '📄')}
+          ${statCard('Chat Messages', totalChat(), '💬')}
+        </div>
+        <div class="dashboard-grid">
+          <section class="panel"><div class="panel-header"><h2 class="panel-title">Upcoming Events</h2><button class="link-button" data-go="events">View all</button></div><div class="list">${events.slice(0,3).map(e => eventRow(e)).join('') || '<div class="empty">No events yet.</div>'}</div></section>
+          <section class="panel"><div class="panel-header"><h2 class="panel-title">Open Votes</h2><button class="link-button" data-go="votes">View all</button></div><div class="list">${polls.slice(0,2).map(p => pollHTML(p)).join('') || '<div class="empty">No open votes.</div>'}</div></section>
+          <section class="panel"><div class="panel-header"><h2 class="panel-title">Recent Meeting Notes</h2><button class="link-button" data-go="notes">View all</button></div><div class="list">${state.notes.slice(0,2).map(n => noteRow(n)).join('') || '<div class="empty">No notes yet.</div>'}</div></section>
+          <section class="panel wide"><div class="panel-header"><h2 class="panel-title">Recent Chat</h2><button class="link-button" data-go="chat">Open chat</button></div><div class="list">${state.messages.slice(-3).reverse().map(chatRow).join('') || '<div class="empty">No chat messages yet.</div>'}</div></section>
+        </div>`;
+    }
+
+    function renderEvents(){
+      document.getElementById('events').innerHTML = `<div class="two-column">
+        <section class="panel"><div class="panel-header"><h2 class="panel-title">Add Event</h2></div><form onsubmit="addEvent(event)">
+          <label>Event title<input name="title" required placeholder="Second Saturday in the Square"></label>
+          <label>Date<input name="date" required type="date"></label>
+          <label>Time<input name="time" type="time"></label>
+          <label>Location<input name="location" placeholder="Wayland Square"></label>
+          <label>Description<textarea name="description" placeholder="What should members know?"></textarea></label>
+          <button class="primary">Add Event</button>
+        </form></section>
+        <section class="panel"><div class="panel-header"><h2 class="panel-title">Events & RSVPs</h2></div><p class="tabs-note">For this launch version, RSVPs are saved on this device. Firebase will make RSVPs shared across everyone.</p><div class="list">${upcomingEvents().map(e => eventRow(e,true)).join('') || '<div class="empty">No events yet.</div>'}</div></section>
+      </div>`;
+    }
+
+    function renderNotes(){
+      document.getElementById('notes').innerHTML = `<div class="two-column">
+        <section class="panel"><div class="panel-header"><h2 class="panel-title">Add Meeting Notes</h2></div><form onsubmit="addNote(event)">
+          <label>Meeting title<input name="title" required placeholder="Monthly Meeting Notes"></label>
+          <label>Date<input name="date" type="date"></label>
+          <label>Author<input name="author" placeholder="Your name"></label>
+          <label>Notes<textarea name="body" required placeholder="Meeting summary..."></textarea></label>
+          <label>Action items<textarea name="actionItems" placeholder="One action item per line"></textarea></label>
+          <button class="primary">Save Notes</button>
+        </form></section>
+        <section class="panel"><div class="panel-header"><h2 class="panel-title">Meeting Notes</h2></div><div class="list">${state.notes.map(n => noteRow(n,true)).join('') || '<div class="empty">No notes yet.</div>'}</div></section>
+      </div>`;
+    }
+
+    function renderVotes(){
+      document.getElementById('votes').innerHTML = `<div class="two-column">
+        <section class="panel"><div class="panel-header"><h2 class="panel-title">Create Vote</h2></div><form onsubmit="addPoll(event)">
+          <label>Question<input name="question" required placeholder="Which date works best?"></label>
+          <label>Options<textarea name="options" required>Yes\nNo\nMaybe</textarea></label>
+          <button class="primary">Start Vote</button>
+        </form></section>
+        <section class="panel"><div class="panel-header"><h2 class="panel-title">Questions & Votes</h2></div><p class="tabs-note">This simple version prevents duplicate votes only within the same browser. Firebase login will make this one vote per member.</p><div class="list">${state.polls.map(p => pollHTML(p,true)).join('') || '<div class="empty">No polls yet.</div>'}</div></section>
+      </div>`;
+    }
+
+    function renderChat(){
+      document.getElementById('chat').innerHTML = `<div class="two-column">
+        <section class="panel"><div class="panel-header"><h2 class="panel-title">Post Message</h2></div><form onsubmit="addMessage(event)">
+          <label>Channel<select name="channel"><option>General Announcements</option><option>Events Team</option><option>Marketing Committee</option><option>Board Discussion</option></select></label>
+          <label>Your name<input name="author" required placeholder="Your name"></label>
+          <label>Message<textarea name="message" required placeholder="Share an update..."></textarea></label>
+          <button class="primary">Send Message</button>
+          <button type="button" class="danger" onclick="clearChat()">Clear Chat</button>
+        </form></section>
+        <section class="panel"><div class="panel-header"><h2 class="panel-title">Association Chat</h2></div><p class="tabs-note">In this version chat is saved locally. Firebase will make it live and shared for all members.</p><div class="list">${state.messages.slice().reverse().map(chatRow).join('') || '<div class="empty">No messages yet.</div>'}</div></section>
+      </div>`;
+    }
+
+    function renderMembers(){
+      document.getElementById('members').innerHTML = `<div class="two-column">
+        <section class="panel"><div class="panel-header"><h2 class="panel-title">Invite Member</h2></div><form onsubmit="addMember(event)">
+          <label>Name<input name="name" required placeholder="Member name"></label>
+          <label>Business<input name="business" placeholder="Business name"></label>
+          <label>Email<input name="email" type="email" placeholder="email@example.com"></label>
+          <label>Role<select name="role"><option>Member</option><option>Admin</option><option>Committee Lead</option></select></label>
+          <button class="primary">Add / Invite Member</button>
+        </form><p class="footer-note">This adds a member to the prototype list. Actual email invites come later when Firebase/email is connected.</p></section>
+        <section class="panel"><div class="panel-header"><h2 class="panel-title">Member Directory</h2></div><div class="list">${state.members.map(memberRow).join('') || '<div class="empty">No members yet.</div>'}</div></section>
+      </div>`;
+    }
+
+    function render(){
+      renderNav();
+      document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === activeTab));
+      document.getElementById('openBadge').textContent = `${openPolls().length + state.events.length} open items`;
+      renderDashboard(); renderEvents(); renderNotes(); renderVotes(); renderChat(); renderMembers();
+      document.querySelectorAll('[data-go]').forEach(btn => btn.addEventListener('click', () => { activeTab = btn.dataset.go; closeMenu(); render(); window.scrollTo({top:0, behavior:'smooth'}); }));
+    }
+
+    function formData(event){ return Object.fromEntries(new FormData(event.target).entries()); }
+    function addEvent(event){
+      event.preventDefault(); const f = formData(event);
+      state.events.push({ id:uid(), title:f.title, date:f.date, time:f.time, location:f.location, description:f.description, rsvps:{attending:0,maybe:0,notAttending:0}, myRsvp:'' });
+      event.target.reset(); save();
+    }
+    function rsvp(id, choice){
+      const e = state.events.find(x => x.id === id); if(!e) return;
+      if(e.myRsvp && e.rsvps[e.myRsvp] > 0) e.rsvps[e.myRsvp]--;
+      e.myRsvp = choice; e.rsvps[choice]++; save();
+    }
+    function deleteEvent(id){ if(confirm('Delete this event?')) { state.events = state.events.filter(e => e.id !== id); save(); } }
+    function addNote(event){ event.preventDefault(); const f=formData(event); state.notes.unshift({ id:uid(), title:f.title, date:f.date, author:f.author || 'WSMA', body:f.body, actionItems:f.actionItems }); event.target.reset(); save(); }
+    function deleteNote(id){ if(confirm('Delete this note?')) { state.notes = state.notes.filter(n => n.id !== id); save(); } }
+    function addPoll(event){
+      event.preventDefault(); const f=formData(event); const options = f.options.split('\n').map(x => x.trim()).filter(Boolean);
+      if(options.length < 2) { alert('Please add at least two options.'); return; }
+      state.polls.unshift({ id:uid(), question:f.question, status:'Open', options:options.map(label => ({ id:uid(), label, votes:0 })), myVote:'' });
+      event.target.reset(); save();
+    }
+    function vote(pollId, optionId){
+      const p = state.polls.find(x => x.id === pollId); if(!p || p.status !== 'Open' || p.myVote) return;
+      const o = p.options.find(x => x.id === optionId); if(!o) return;
+      o.votes++; p.myVote = optionId; save();
+    }
+    function togglePoll(id){ const p=state.polls.find(x=>x.id===id); if(p){ p.status = p.status === 'Open' ? 'Closed' : 'Open'; save(); } }
+    function deletePoll(id){ if(confirm('Delete this vote?')) { state.polls = state.polls.filter(p => p.id !== id); save(); } }
+    function addMessage(event){ event.preventDefault(); const f=formData(event); state.messages.push({ id:uid(), channel:f.channel, author:f.author, message:f.message, time:new Date().toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) }); event.target.reset(); save(); }
+    function clearChat(){ if(confirm('Clear all chat messages?')) { state.messages = []; save(); } }
+    function addMember(event){ event.preventDefault(); const f=formData(event); state.members.push({ id:uid(), name:f.name, business:f.business, email:f.email, role:f.role, status:f.email ? 'Invited' : 'Active' }); event.target.reset(); save(); }
+
+    window.rsvp = rsvp; window.deleteEvent = deleteEvent; window.addEvent = addEvent;
+    window.addNote = addNote; window.deleteNote = deleteNote;
+    window.addPoll = addPoll; window.vote = vote; window.togglePoll = togglePoll; window.deletePoll = deletePoll;
+    window.addMessage = addMessage; window.clearChat = clearChat; window.addMember = addMember;
+
+    document.getElementById('menuToggle').addEventListener('click', openMenu);
+    document.getElementById('closeMenu').addEventListener('click', closeMenu);
+    document.getElementById('sidebarOverlay').addEventListener('click', closeMenu);
+    window.addEventListener('resize', () => { if(window.innerWidth >= 1000) closeMenu(); });
+
+    render();
   </script>
 </body>
 </html>
