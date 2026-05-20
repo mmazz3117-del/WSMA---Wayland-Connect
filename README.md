@@ -1,31 +1,22 @@
-# WSMA — Wayland Square Connect
+# Wayland Square Connect
 
-This is a simple launch-ready static prototype for the Wayland Square Merchants Association.
+A simple mobile-first app prototype for the Wayland Square Merchants Association.
 
-## What is included
+## What this version includes
 
-- Dashboard
-- Events and RSVPs
+- Mobile-first dashboard
+- Stylized Wayland Square Connect hero banner
+- Events and RSVP tracking
 - Meeting notes
-- Votes / polls
-- Chat
-- Member invite/directory list
-- Stylized Wayland Square banner artwork
+- Member voting/polls
+- Chat updates
+- Member directory
+- Browser-based local storage for demo data
 
-## Important launch note
+## Current limitation
 
-This first version uses browser localStorage. That means the app can be hosted on GitHub Pages and shared as a preview, but each person's entries are saved only on their own device/browser.
+This launch version stores data in the visitor's browser. It is perfect for a public demo or internal preview, but it is not yet shared across members.
 
-For a true shared association app where everyone sees the same events, votes, chat, and notes, connect this to Firebase next.
+## Next phase
 
-## GitHub Pages quick upload
-
-1. Create a new GitHub repository.
-2. Upload everything in this folder to the repository root.
-3. Commit the files to the main branch.
-4. Go to Settings > Pages.
-5. Under Build and deployment, choose Deploy from a branch.
-6. Choose main and /root, then Save.
-7. After GitHub publishes it, open the Pages link.
-
-Do not publish sensitive/private association information until login and Firebase security are added.
+Connect Firebase Authentication and Cloud Firestore so WSMA members can log in and share the same events, notes, votes, chat, and RSVP data.
